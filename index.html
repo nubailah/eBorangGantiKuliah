@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Ganti Kuliah</title>
+<title>Sistem Penggantian Kuliah</title>
 
 <style>
 body{font-family:Arial;background:#f4f6f9;padding:20px;}
@@ -12,6 +12,7 @@ table{
   width:100%;
   border-collapse:collapse;
   table-layout:fixed;
+  background:white;
 }
 
 th,td{
@@ -23,6 +24,18 @@ th,td{
 }
 
 .detailRow{display:none;background:#f9f9f9;}
+
+input,select,textarea{
+  font-size:11px;
+  padding:3px;
+}
+
+button{
+  padding:5px 8px;
+  margin:2px;
+  cursor:pointer;
+  font-size:11px;
+}
 
 .baru{background:#fff3cd;}
 .lulus{background:#d4edda;}
@@ -36,22 +49,42 @@ th,td{
 
 <body>
 
-<h3>SISTEM PENGGANTIAN KULIAH</h3>
+<!-- LOGIN -->
+<div id="loginBox" class="card">
+  <h3>LOGIN</h3>
+  <input id="id" placeholder="ID"><br><br>
+  <input id="pass" type="password" placeholder="PASSWORD"><br><br>
+  <button onclick="login()">Login</button>
+</div>
 
-<input id="id" placeholder="ID">
-<input id="pass" type="password" placeholder="PASSWORD">
-<button onclick="login()">Login</button>
-
+<!-- DASHBOARD -->
 <div id="app" style="display:none;">
 
 <h3 id="welcome"></h3>
 
 <button onclick="loadData()">Refresh</button>
-<button onclick="downloadPDF()">Download PDF</button>
+<button onclick="downloadPDF()">PDF</button>
 
-<table>
-  <tbody id="tbody"></tbody>
-</table>
+<!-- FORM -->
+<div class="card">
+  <h4>BORANG PENGGANTIAN</h4>
+
+  <textarea id="sebab" placeholder="SEBAB"></textarea><br><br>
+
+  <button onclick="addRow()">+ Tambah Kelas</button>
+  <button onclick="submitForm()">Hantar</button>
+
+  <div id="kelasBox"></div>
+</div>
+
+<!-- TABLE -->
+<div class="card">
+  <h4>SENARAI PERMOHONAN</h4>
+
+  <table>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
 
 </div>
 
@@ -61,6 +94,7 @@ const API = "https://script.google.com/macros/s/AKfycbwt1IPuLICwQlzMW9IbSLG9Pmbr
 
 let user=null;
 let store=[];
+let editMode={};
 
 // ================= LOGIN =================
 function login(){
@@ -83,7 +117,9 @@ fetch(API,{
 
   user=res;
 
-  document.getElementById("app").style.display="block";
+  loginBox.style.display="none";
+  app.style.display="block";
+
   welcome.innerText = res.name + " | " + res.jabatan;
 
   loadData();
@@ -92,7 +128,80 @@ fetch(API,{
 
 }
 
-// ================= LOAD DATA (MATCH CODE.GS GETDATA) =================
+// ================= ADD ROW =================
+function addRow(){
+
+if(document.querySelector(".kelas-item")){
+  alert("Hantar dulu sebelum tambah lagi");
+  return;
+}
+
+let div=document.createElement("div");
+div.className="kelas-item";
+
+div.innerHTML=`
+<hr>
+
+<b>KULIAH ASAL</b><br>
+Kursus <input class="A_KURSUS">
+Kelas <input class="A_KELAS">
+Tarikh <input type="date" class="A_TARIKH">
+Masa <input class="A_MASA">
+Bilik <input class="A_BILIK"><br><br>
+
+<b>KULIAH GANTI</b><br>
+Tarikh <input type="date" class="G_TARIKH">
+Masa <input class="G_MASA">
+Bilik <input class="G_BILIK">
+`;
+
+kelasBox.appendChild(div);
+
+}
+
+// ================= SUBMIT =================
+function submitForm(){
+
+let c=document.querySelector(".kelas-item");
+
+let payload={
+  id:user.id,
+  name:user.name,
+  jabatan:user.jabatan,
+  sebab:sebab.value,
+  classes:[{
+    A_KURSUS:c.querySelector(".A_KURSUS").value,
+    A_KELAS:c.querySelector(".A_KELAS").value,
+    A_TARIKH:c.querySelector(".A_TARIKH").value,
+    A_MASA:c.querySelector(".A_MASA").value,
+    A_BILIK:c.querySelector(".A_BILIK").value,
+
+    G_TARIKH:c.querySelector(".G_TARIKH").value,
+    G_MASA:c.querySelector(".G_MASA").value,
+    G_BILIK:c.querySelector(".G_BILIK").value
+  }]
+};
+
+fetch(API,{
+  method:"POST",
+  body:JSON.stringify({
+    action:"submit",
+    payload:payload
+  })
+})
+.then(r=>r.json())
+.then(()=>{
+
+  alert("Berjaya dihantar!");
+
+  kelasBox.innerHTML="";
+  loadData();
+
+});
+
+}
+
+// ================= LOAD DATA =================
 function loadData(){
 
 fetch(API,{
@@ -107,64 +216,128 @@ fetch(API,{
 .then(r=>r.json())
 .then(res=>{
 
-  store = res;
+store=res;
 
-  let html="";
+let html="";
 
-  html+=`
-  <tr>
-    <th>No</th>
-    <th>ID</th>
-    <th>Sebab</th>
-    <th>Kursus</th>
-    <th>Status</th>
-  </tr>`;
+html+=`
+<tr>
+<th>ID</th>
+<th>SEBAB</th>
+<th>KURSUS</th>
+<th>KELAS</th>
+<th>TARIKH</th>
+<th>MASA</th>
+<th>BILIK</th>
+<th>STATUS</th>
+<th>ACTION</th>
+</tr>`;
 
-  res.forEach((r,i)=>{
+res.forEach(r=>{
 
-    let cls =
-      r.status==="BARU"?"baru":
-      r.status==="Diluluskan"?"lulus":"reject";
+let isEdit = editMode[r.noGanti];
 
-    html+=`
-    <tr class="${cls}" onclick="toggle(${i})">
-      <td>${i+1}</td>
-      <td>${r.noGanti}</td>
-      <td>${r.sebab}</td>
-      <td>${r.A_KURSUS}</td>
-      <td>${r.status}</td>
-    </tr>
+html+=`
+<tr class="${r.status==='BARU'?'baru':r.status==='Diluluskan'?'lulus':'reject'}">
 
-    <tr id="d${i}" class="detailRow">
-      <td colspan="5">
-        <b>DETAIL KULIAH ASAL</b><br>
-        Kelas: ${r.A_KELAS}<br>
-        Tarikh: ${r.A_TARIKH}<br>
-        Masa: ${r.A_MASA}<br>
-        Bilik: ${r.A_BILIK}<br><br>
+<td>${r.noGanti}</td>
 
-        <b>GANTI</b><br>
-        Tarikh: ${r.G_TARIKH}<br>
-        Masa: ${r.G_MASA}<br>
-        Bilik: ${r.G_BILIK}
-      </td>
-    </tr>
-    `;
-  });
+<td>
+${isEdit ? `<input id="s-${r.noGanti}" value="${r.sebab}">` : r.sebab}
+</td>
 
-  tbody.innerHTML=html;
+<td>
+${isEdit ? `<input id="k-${r.noGanti}" value="${r.A_KURSUS}">` : r.A_KURSUS}
+</td>
+
+<td>
+${isEdit ? `<input id="kl-${r.noGanti}" value="${r.A_KELAS}">` : r.A_KELAS}
+</td>
+
+<td>
+${isEdit ? `<input type="date" id="t-${r.noGanti}" value="${r.A_TARIKH}">` : r.A_TARIKH}
+</td>
+
+<td>
+${isEdit ? `<input id="m-${r.noGanti}" value="${r.A_MASA}">` : r.A_MASA}
+</td>
+
+<td>
+${isEdit ? `<input id="b-${r.noGanti}" value="${r.A_BILIK}">` : r.A_BILIK}
+</td>
+
+<td>${r.status}</td>
+
+<td>
+<button onclick="editSave('${r.noGanti}')">
+${isEdit ? "SAVE" : "EDIT"}
+</button>
+
+<button onclick="del('${r.noGanti}')">DEL</button>
+</td>
+
+</tr>
+`;
+});
+
+tbody.innerHTML=html;
 
 });
 
 }
 
-// ================= TOGGLE =================
-function toggle(i){
-  let el=document.getElementById("d"+i);
-  el.style.display = el.style.display==="table-row"?"none":"table-row";
+// ================= EDIT / SAVE =================
+function editSave(no){
+
+if(!editMode[no]){
+  editMode[no]=true;
+  loadData();
+  return;
 }
 
-// ================= PDF (MATCH DATASTORE) =================
+let updated={
+  sebab:document.getElementById("s-"+no)?.value,
+  A_KURSUS:document.getElementById("k-"+no)?.value,
+  A_KELAS:document.getElementById("kl-"+no)?.value,
+  A_TARIKH:document.getElementById("t-"+no)?.value,
+  A_MASA:document.getElementById("m-"+no)?.value,
+  A_BILIK:document.getElementById("b-"+no)?.value
+};
+
+fetch(API,{
+  method:"POST",
+  body:JSON.stringify({
+    action:"update",
+    no:no,
+    updated:updated
+  })
+})
+.then(()=>{
+
+delete editMode[no];
+loadData();
+
+});
+
+}
+
+// ================= DELETE =================
+function del(no){
+
+if(!confirm("Delete?")) return;
+
+fetch(API,{
+  method:"POST",
+  body:JSON.stringify({
+    action:"delete",
+    no:no
+  })
+})
+.then(()=>loadData());
+
+}
+
+// ================= PDF =================
 function downloadPDF(){
 
 const { jsPDF } = window.jspdf;
@@ -173,29 +346,22 @@ const doc = new jsPDF("l","mm","a4");
 doc.text("BORANG PENGGANTIAN KULIAH", 148, 15, {align:"center"});
 
 let table = store.map((r,i)=>[
-  i+1,
-  r.noGanti,
-  r.sebab,
-  r.A_KURSUS,
-  r.A_KELAS,
-  r.A_TARIKH,
-  r.A_MASA,
-  r.A_BILIK,
-  r.G_TARIKH,
-  r.G_MASA,
-  r.G_BILIK,
-  r.status
+i+1,
+r.noGanti,
+r.sebab,
+r.A_KURSUS,
+r.A_KELAS,
+r.A_TARIKH,
+r.A_MASA,
+r.A_BILIK,
+r.status
 ]);
 
 doc.autoTable({
-  startY:25,
-  head:[[
-    "Bil","ID","Sebab","Kursus","Kelas",
-    "Tarikh","Masa","Bilik",
-    "G Tarikh","G Masa","G Bilik","Status"
-  ]],
-  body:table,
-  styles:{fontSize:7}
+startY:25,
+head:[["Bil","ID","Sebab","Kursus","Kelas","Tarikh","Masa","Bilik","Status"]],
+body:table,
+styles:{fontSize:8}
 });
 
 doc.save("ganti_kuliah.pdf");
