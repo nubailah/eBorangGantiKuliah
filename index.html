@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Sistem Penggantian Kuliah</title>
+
+  <style>
+    body{
+      font-family:Arial;
+      background:#f4f6f9;
+      padding:20px;
+    }
+
+    .card{
+      background:#fff;
+      padding:15px;
+      border-radius:10px;
+      margin-top:10px;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      background:#fff;
+      table-layout:fixed;
+    }
+
+    th,td{
+      border:1px solid #ccc;
+      padding:6px;
+      text-align:center;
+      font-size:11px;
+      word-wrap:break-word;
+    }
+
+    input,select,textarea{
+      font-size:12px;
+      padding:4px;
+    }
+
+    button{
+      padding:6px 10px;
+      margin:3px;
+      cursor:pointer;
+      font-size:12px;
+    }
+
+    .detailRow{display:none;background:#f9f9f9;}
+
+    .baru{background:#fff3cd;}
+    .lulus{background:#d4edda;}
+    .reject{background:#f8d7da;}
+
+    @media(max-width:768px){
+      body{padding:10px;}
+      table{font-size:10px;}
+      input,select,textarea{width:100%;}
+      button{width:100%;}
+    }
+  </style>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+</head>
+
+<body>
+
+<div class="card" style="text-align:center;background:#2c3e50;color:white;">
+  <b>BORANG PENGGANTIAN KULIAH</b><br>
+  PERMOHONAN CUTI PENSYARAH
+</div>
+
+<!-- LOGIN -->
+<div id="loginBox" class="card">
+  <h3>LOGIN</h3>
+  <input id="id" placeholder="NO GAJI"><br><br>
+  <input id="pass" type="password" placeholder="PASSWORD"><br><br>
+  <button onclick="login()">Login</button>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" style="display:none;">
+
+  <h3 id="welcome"></h3>
+  <button onclick="logout()" style="float:right;background:red;color:white;">Logout</button>
+
+  <!-- FORM -->
+  <div id="formBox" class="card">
+    <h4>BORANG PERMOHONAN</h4>
+
+    <textarea id="sebab" placeholder="SEBAB KULIAH DIGANTI"></textarea><br><br>
+
+    <button onclick="addRow()">+ Tambah Kelas</button>
+    <button onclick="submitForm()">Hantar</button>
+
+    <div id="kelasBox"></div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="card">
+    <h3>SENARAI PERMOHONAN</h3>
+    <button onclick="loadData()">Refresh</button>
+
+    <table>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+
+const API = "https://script.google.com/macros/s/AKfycbwt1IPuLICwQlzMW9IbSLG9PmbrmVNcIxadw2u5RiHnsqoPJqXrEkodbFCdPxZMizEheA/exec";
+
+let user=null;
+let editMode={};
+
+// ================= LOGIN =================
+function login(){
+
+  fetch(API,{
+    method:"POST",
+    body:JSON.stringify({
+      action:"login",
+      id:id.value,
+      pass:pass.value
+    })
+  })
+  .then(r=>r.json())
+  .then(res=>{
+
+    if(!res.ok){
+      alert("Login gagal");
+      return;
+    }
+
+    user=res;
+
+    loginBox.style.display="none";
+    dashboard.style.display="block";
+
+    welcome.innerText = user.name + " | " + user.jabatan;
+
+    if(user.role!=="lecturer"){
+      document.getElementById("formBox").style.display="none";
+    }
+
+    loadData();
+  });
+}
+
+// ================= ADD ROW =================
+function addRow(){
+
+  if(document.querySelector(".kelas-item")){
+    alert("Hantar dulu sebelum tambah baru");
+    return;
+  }
+
+  let div=document.createElement("div");
+  div.className="kelas-item";
+
+  div.innerHTML=`
+    <hr>
+    <b>KULIAH ASAL</b><br>
+
+    Kursus <input class="A_KURSUS">
+    Kelas <input class="A_KELAS">
+    Tarikh <input type="date" class="A_TARIKH">
+    Masa <input class="A_MASA">
+    Bilik <input class="A_BILIK"><br><br>
+
+    <b>KULIAH GANTI</b><br>
+
+    Tarikh <input type="date" class="G_TARIKH">
+    Masa <input class="G_MASA">
+    Bilik <input class="G_BILIK">
+  `;
+
+  kelasBox.appendChild(div);
+}
+
+// ================= SUBMIT =================
+function submitForm(){
+
+  let c=document.querySelector(".kelas-item");
+
+  let payload={
+    id:user.id,
+    name:user.name,
+    jabatan:user.jabatan,
+    sebab:sebab.value,
+    classes:[{
+      A_KURSUS:c.querySelector(".A_KURSUS").value,
+      A_KELAS:c.querySelector(".A_KELAS").value,
+      A_TARIKH:c.querySelector(".A_TARIKH").value,
+      A_MASA:c.querySelector(".A_MASA").value,
+      A_BILIK:c.querySelector(".A_BILIK").value,
+
+      G_TARIKH:c.querySelector(".G_TARIKH").value,
+      G_MASA:c.querySelector(".G_MASA").value,
+      G_BILIK:c.querySelector(".G_BILIK").value
+    }]
+  };
+
+  fetch(API,{
+    method:"POST",
+    body:JSON.stringify({
+      action:"submit",
+      payload
+    })
+  })
+  .then(r=>r.json())
+  .then(()=>{
+    alert("Berjaya!");
+    kelasBox.innerHTML="";
+    loadData();
+  });
+
+}
+
+// ================= LOAD DATA =================
+function loadData(){
+
+  fetch(API,{
+    method:"POST",
+    body:JSON.stringify({
+      action:"getData",
+      role:user.role,
+      id:user.id,
+      jabatan:user.jabatan
+    })
+  })
+  .then(r=>r.json())
+  .then(res=>{
+
+    let html="";
+
+    html+=`
+      <tr>
+        <th>ID</th>
+        <th>SEBAB</th>
+        <th>KURSUS</th>
+        <th>KELAS</th>
+        <th>TARIKH</th>
+        <th>MASA</th>
+        <th>BILIK</th>
+        <th>STATUS</th>
+        <th>ACTION</th>
+      </tr>
+    `;
+
+    res.forEach(r=>{
+
+      let cls = r.status==="BARU"?"baru":
+                r.status==="Diluluskan"?"lulus":"reject";
+
+      html+=`
+        <tr class="${cls}">
+          <td>${r.noGanti}</td>
+          <td>${r.sebab}</td>
+          <td>${r.A_KURSUS}</td>
+          <td>${r.A_KELAS}</td>
+          <td>${r.A_TARIKH}</td>
+          <td>${r.A_MASA}</td>
+          <td>${r.A_BILIK}</td>
+          <td>${r.status}</td>
+          <td>
+            <button onclick="del('${r.noGanti}')">DEL</button>
+          </td>
+        </tr>
+      `;
+    });
+
+    tbody.innerHTML=html;
+
+  });
+
+}
+
+// ================= DELETE =================
+function del(no){
+
+  if(!confirm("Delete?")) return;
+
+  fetch(API,{
+    method:"POST",
+    body:JSON.stringify({
+      action:"delete",
+      no:no
+    })
+  })
+  .then(()=>loadData());
+
+}
+
+// ================= LOGOUT =================
+function logout(){
+  user=null;
+  loginBox.style.display="block";
+  dashboard.style.display="none";
+  tbody.innerHTML="";
+}
+
+</script>
+
+</body>
+</html>
