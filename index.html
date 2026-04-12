@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Ganti Kuliah System</title>
+<title>Ganti Kuliah</title>
 
 <style>
 body{font-family:Arial;background:#f4f6f9;padding:20px;}
@@ -12,20 +12,17 @@ table{
   width:100%;
   border-collapse:collapse;
   table-layout:fixed;
-  background:#fff;
 }
 
 th,td{
   border:1px solid #ccc;
-  padding:6px;
+  padding:5px;
   font-size:11px;
   text-align:center;
   word-wrap:break-word;
 }
 
 .detailRow{display:none;background:#f9f9f9;}
-
-button{padding:5px 8px;margin:2px;cursor:pointer;}
 
 .baru{background:#fff3cd;}
 .lulus{background:#d4edda;}
@@ -41,6 +38,14 @@ button{padding:5px 8px;margin:2px;cursor:pointer;}
 
 <h3>SISTEM PENGGANTIAN KULIAH</h3>
 
+<input id="id" placeholder="ID">
+<input id="pass" type="password" placeholder="PASSWORD">
+<button onclick="login()">Login</button>
+
+<div id="app" style="display:none;">
+
+<h3 id="welcome"></h3>
+
 <button onclick="loadData()">Refresh</button>
 <button onclick="downloadPDF()">Download PDF</button>
 
@@ -48,28 +53,61 @@ button{padding:5px 8px;margin:2px;cursor:pointer;}
   <tbody id="tbody"></tbody>
 </table>
 
+</div>
+
 <script>
 
 const API = "https://script.google.com/macros/s/AKfycbwt1IPuLICwQlzMW9IbSLG9PmbrmVNcIxadw2u5RiHnsqoPJqXrEkodbFCdPxZMizEheA/exec";
 
-let dataStore = [];
+let user=null;
+let store=[];
 
-// ================= LOAD =================
+// ================= LOGIN =================
+function login(){
+
+fetch(API,{
+  method:"POST",
+  body:JSON.stringify({
+    action:"login",
+    id:id.value,
+    pass:pass.value
+  })
+})
+.then(r=>r.json())
+.then(res=>{
+
+  if(!res.ok){
+    alert("Login gagal");
+    return;
+  }
+
+  user=res;
+
+  document.getElementById("app").style.display="block";
+  welcome.innerText = res.name + " | " + res.jabatan;
+
+  loadData();
+
+});
+
+}
+
+// ================= LOAD DATA (MATCH CODE.GS GETDATA) =================
 function loadData(){
 
 fetch(API,{
   method:"POST",
   body:JSON.stringify({
     action:"getData",
-    role:"admin",
-    id:"",
-    jabatan:""
+    role:user.role,
+    id:user.id,
+    jabatan:user.jabatan
   })
 })
 .then(r=>r.json())
 .then(res=>{
 
-  dataStore = res;
+  store = res;
 
   let html="";
 
@@ -77,31 +115,40 @@ fetch(API,{
   <tr>
     <th>No</th>
     <th>ID</th>
-    <th>SEBAB</th>
-    <th>KURSUS</th>
-    <th>STATUS</th>
+    <th>Sebab</th>
+    <th>Kursus</th>
+    <th>Status</th>
   </tr>`;
 
   res.forEach((r,i)=>{
 
-    html+=`
-      <tr onclick="toggle(${i})" class="${r.status==='BARU'?'baru':r.status==='Diluluskan'?'lulus':'reject'}">
-        <td>${i+1}</td>
-        <td>${r.noGanti}</td>
-        <td>${r.sebab}</td>
-        <td>${r.A_KURSUS}</td>
-        <td>${r.status}</td>
-      </tr>
+    let cls =
+      r.status==="BARU"?"baru":
+      r.status==="Diluluskan"?"lulus":"reject";
 
-      <tr id="d${i}" class="detailRow">
-        <td colspan="5">
-          <b>DETAIL</b><br>
-          Tarikh: ${r.A_TARIKH}<br>
-          Masa: ${r.A_MASA}<br>
-          Bilik: ${r.A_BILIK}<br>
-          Ganti: ${r.G_TARIKH} | ${r.G_MASA} | ${r.G_BILIK}
-        </td>
-      </tr>
+    html+=`
+    <tr class="${cls}" onclick="toggle(${i})">
+      <td>${i+1}</td>
+      <td>${r.noGanti}</td>
+      <td>${r.sebab}</td>
+      <td>${r.A_KURSUS}</td>
+      <td>${r.status}</td>
+    </tr>
+
+    <tr id="d${i}" class="detailRow">
+      <td colspan="5">
+        <b>DETAIL KULIAH ASAL</b><br>
+        Kelas: ${r.A_KELAS}<br>
+        Tarikh: ${r.A_TARIKH}<br>
+        Masa: ${r.A_MASA}<br>
+        Bilik: ${r.A_BILIK}<br><br>
+
+        <b>GANTI</b><br>
+        Tarikh: ${r.G_TARIKH}<br>
+        Masa: ${r.G_MASA}<br>
+        Bilik: ${r.G_BILIK}
+      </td>
+    </tr>
     `;
   });
 
@@ -111,22 +158,21 @@ fetch(API,{
 
 }
 
-// ================= TOGGLE CLICKABLE =================
+// ================= TOGGLE =================
 function toggle(i){
   let el=document.getElementById("d"+i);
   el.style.display = el.style.display==="table-row"?"none":"table-row";
 }
 
-// ================= PDF DOWNLOAD =================
+// ================= PDF (MATCH DATASTORE) =================
 function downloadPDF(){
 
 const { jsPDF } = window.jspdf;
 const doc = new jsPDF("l","mm","a4");
 
-doc.setFontSize(14);
 doc.text("BORANG PENGGANTIAN KULIAH", 148, 15, {align:"center"});
 
-let table = dataStore.map((r,i)=>[
+let table = store.map((r,i)=>[
   i+1,
   r.noGanti,
   r.sebab,
@@ -135,21 +181,26 @@ let table = dataStore.map((r,i)=>[
   r.A_TARIKH,
   r.A_MASA,
   r.A_BILIK,
+  r.G_TARIKH,
+  r.G_MASA,
+  r.G_BILIK,
   r.status
 ]);
 
 doc.autoTable({
   startY:25,
-  head:[["Bil","ID","Sebab","Kursus","Kelas","Tarikh","Masa","Bilik","Status"]],
+  head:[[
+    "Bil","ID","Sebab","Kursus","Kelas",
+    "Tarikh","Masa","Bilik",
+    "G Tarikh","G Masa","G Bilik","Status"
+  ]],
   body:table,
-  styles:{fontSize:8}
+  styles:{fontSize:7}
 });
 
 doc.save("ganti_kuliah.pdf");
 
 }
-
-loadData();
 
 </script>
 
