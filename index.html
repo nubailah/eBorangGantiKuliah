@@ -4,6 +4,11 @@
   <base target="_top">
 
   <style>
+
+    .detailRow{
+  display:none;
+  background:#f9f9f9;
+}
 /* ================= MOBILE ================= */
 @media screen and (max-width: 768px){
 
@@ -302,21 +307,23 @@ async function loadData(){
   // ❌ BUANG sort sini kalau backend dah sort
   // data.sort(...)
 
-  data.forEach(r=>{
+data.forEach(r=>{
 
-    let isLocked = (r.status === "Diluluskan");
-    let isEdit = editMode[r.noGanti];
-    let canEdit = !isLocked;
+  let isLocked = (r.status === "Diluluskan");
+  let isEdit = editMode[r.noGanti];
+  let canEdit = !isLocked;
 
-    let rowClass =
-      r.status==="BARU"?"baru":
-      r.status==="Diluluskan"?"lulus":"reject";
+  let rowClass =
+    r.status==="BARU"?"baru":
+    r.status==="Diluluskan"?"lulus":"reject";
 
-    html += `
-    <tr class="${rowClass}">
+  // MAIN ROW
+  html += `
+  <tr class="${rowClass}">
 
     ${user.role==="lecturer" ? `
-<td><input type="checkbox" class="pdfCheck" value="${r.noGanti}"></td>` : ""}
+    <td><input type="checkbox" class="pdfCheck" value="${r.noGanti}"></td>
+    ` : ""}
 
     <td onclick="toggle('${r.noGanti}')" style="cursor:pointer;color:blue">
       ${r.noGanti}
@@ -331,16 +338,35 @@ async function loadData(){
       <button onclick="del('${r.noGanti}')">DEL</button>
     </td>
 
-    </tr>
-    `;
-  });
+  </tr>
+  `;
+
+  // DETAIL ROW (SEPARATE BLOCK)
+  html += `
+  <tr id="d-${r.noGanti}" class="detailRow">
+    <td colspan="6">
+
+      <b>DETAIL KULIAH</b><br>
+      Jenis: ${r.A_JENIS}<br>
+      Tarikh: ${r.A_TARIKH}<br>
+      Masa: ${r.A_MASA}<br>
+      Bilik: ${r.A_BILIK}<br>
+
+    </td>
+  </tr>
+  `;
+});
 
   tbody.innerHTML = html;
 }
 // ================= TOGGLE =================
 function toggle(id){
-  let el=document.getElementById("d-"+id);
-  el.style.display=el.style.display==="table-row"?"none":"table-row";
+  let el = document.getElementById("d-"+id);
+
+  if(!el) return;
+
+  el.style.display =
+    el.style.display === "table-row" ? "none" : "table-row";
 }
 
 // ================= EDIT SAVE =================
