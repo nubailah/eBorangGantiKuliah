@@ -1,87 +1,139 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>Sistem Penggantian Kuliah</title>
+  <base target="_top">
 
-<style>
-body{font-family:Arial;background:#f4f6f9;padding:20px;}
-.card{background:#fff;padding:15px;border-radius:10px;margin-top:10px;}
+  <style>
+/* ================= MOBILE ================= */
+@media screen and (max-width: 768px){
 
-table{
+  body{
+    padding:10px;
+  }
+
+  .card{
+    padding:10px;
+  }
+
+  table{
+    font-size:10px;
+  }
+
+  th, td{
+    font-size:10px;
+    padding:4px;
+  }
+
+  /* ⭐ INPUT FULL WIDTH */
+  input, select, textarea{
+    width:100% !important;
+    font-size:14px;
+    padding:6px;
+    margin-top:3px;
+    margin-bottom:6px;
+  }
+
+  button{
+    width:100%;
+    padding:10px;
+    font-size:14px;
+  }
+}
+
+
+    body{font-family:Arial;background:#f4f6f9;padding:20px;}
+
+    .card{background:#fff;padding:15px;border-radius:10px;margin-top:10px;}
+
+    table{
   width:100%;
   border-collapse:collapse;
-  table-layout:fixed;
-  background:white;
+  background:#fff;
+  table-layout:fixed;   /* ⭐ penting untuk wrap */
 }
 
 th,td{
   border:1px solid #ccc;
   padding:5px;
-  font-size:11px;
+  
+  vertical-align:top;
+
   text-align:center;
+  font-size:11px;
+
+  /* ⭐ WRAP TEXT */
+  white-space:normal;
   word-wrap:break-word;
+  overflow-wrap:break-word;
 }
+    input,select{
+      width:70px;
+      padding:2px;
+      font-size:11px;
+    }
 
-.detailRow{display:none;background:#f9f9f9;}
+    button{padding:4px 6px;margin:2px;cursor:pointer;font-size:11px;}
 
-input,select,textarea{
-  font-size:11px;
-  padding:3px;
-}
+    .detailRow{display:none;background:#f9f9f9;}
 
-button{
-  padding:5px 8px;
-  margin:2px;
-  cursor:pointer;
-  font-size:11px;
-}
-
-.baru{background:#fff3cd;}
-.lulus{background:#d4edda;}
-.reject{background:#f8d7da;}
-</style>
-
+    .baru{background:#fff3cd;}
+    .lulus{background:#d4edda;}
+    .reject{background:#f8d7da;}
+  </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-
 </head>
 
 <body>
 
+<div style="background:#2c3e50;color:white;padding:10px;border-radius:8px;margin-bottom:10px;text-align:center;">
+  <b>BORANG PENGGANTIAN KULIAH</b><br>
+  PERMOHONAN CUTI PENSYARAH DI WAKTU MINGGU PdP
+</div>
+
 <!-- LOGIN -->
 <div id="loginBox" class="card">
+  
+  
+
   <h3>LOGIN</h3>
-  <input id="id" placeholder="ID"><br><br>
-  <input id="pass" type="password" placeholder="PASSWORD"><br><br>
+
+  <input id="id" placeholder="NO GAJI">
+  <input id="pass" type="password" placeholder="PASSWORD">
   <button onclick="login()">Login</button>
+
 </div>
 
 <!-- DASHBOARD -->
-<div id="app" style="display:none;">
-
+<div id="dashboard" style="display:none;">
 <h3 id="welcome"></h3>
 
-<button onclick="loadData()">Refresh</button>
-<button onclick="downloadPDF()">PDF</button>
+<button onclick="logout()" 
+style="float:right;background:#e74c3c;color:white;border:none;border-radius:5px;">
+Logout
+</button>
 
-<!-- FORM -->
-<div class="card">
-  <h4>BORANG PENGGANTIAN</h4>
+<div id="formBox" class="card" style="display:none;">
+  <h4>BORANG PENGGANTIAN KULIAH</h4>
 
-  <textarea id="sebab" placeholder="SEBAB"></textarea><br><br>
+  <label><b>SEBAB KULIAH PERLU DIGANTI:</b></label>
+<textarea id="sebab" rows="3" style="width:100%; resize:vertical; font-size:12px; padding:4px;"></textarea>
 
   <button onclick="addRow()">+ Tambah Kelas</button>
-  <button onclick="submitForm()">Hantar</button>
+  <button onclick="submitForm()">Hantar Permohonan</button>
 
   <div id="kelasBox"></div>
 </div>
 
-<!-- TABLE -->
 <div class="card">
-  <h4>SENARAI PERMOHONAN</h4>
+  <h3>SENARAI PERMOHONAN PENGGANTIAN KULIAH</h3>
+  <button onclick="loadData()">🔄 Refresh</button>
+  <!-- ✅ LETAK SINI -->
+   <button id="pdfBtn" onclick="downloadPDF()">📄 Download PDF</button>
 
   <table>
+   
+
     <tbody id="tbody"></tbody>
   </table>
 </div>
@@ -90,282 +142,375 @@ button{
 
 <script>
 
-const API = "https://script.google.com/macros/s/AKfycbwt1IPuLICwQlzMW9IbSLG9PmbrmVNcIxadw2u5RiHnsqoPJqXrEkodbFCdPxZMizEheA/exec";
-
+const API = "https://script.google.com/macros/s/AKfycbwt1IPuLICwQlzMW9IbSLG9PmbrmVNcIxadw2u5RiHnsqoPJqXrEkodbFCdPxZMizEheA/exec"; // ⭐ WAJIB
 let user=null;
-let store=[];
 let editMode={};
 
+let user=null;
+let editMode={};
+
+// ================= DATE FORMAT MALAYSIA =================
+function formatDate(d){
+  if(!d) return "";
+  let date=new Date(d);
+  let dd=String(date.getDate()).padStart(2,"0");
+  let mm=String(date.getMonth()+1).padStart(2,"0");
+  let yy=date.getFullYear();
+  return `${dd}/${mm}/${yy}`;
+}
+
 // ================= LOGIN =================
-function login(){
+async function login(){
 
-fetch(API,{
-  method:"POST",
-  body:JSON.stringify({
-    action:"login",
-    id:id.value,
-    pass:pass.value
-  })
-})
-.then(r=>r.json())
-.then(res=>{
+  let res = await fetch(`${API}?action=login&id=${id.value}&pass=${pass.value}`);
+  let data = await res.json();
 
-  if(!res.ok){
+  if(!data.ok){
     alert("Login gagal");
     return;
   }
 
-  user=res;
+  user = data;
+
+  formBox.style.display = "none";
+
+  document.getElementById("pdfBtn").style.display =
+    (user.role === "lecturer") ? "inline-block" : "none";
 
   loginBox.style.display="none";
-  app.style.display="block";
+  dashboard.style.display="block";
 
-  welcome.innerText = res.name + " | " + res.jabatan;
+  welcome.innerText=user.name+" | "+user.jabatan;
+
+  if(user.role === "lecturer"){
+    formBox.style.display = "block";
+  }
 
   loadData();
-
-});
-
 }
-
-// ================= ADD ROW =================
+// ================= ADD =================
 function addRow(){
 
-if(document.querySelector(".kelas-item")){
-  alert("Hantar dulu sebelum tambah lagi");
-  return;
+  let box = document.getElementById("kelasBox");
+
+  // ❌ kalau dah ada, jangan tambah lagi
+  if(box.children.length > 0){
+    alert("Sila hantar permohonan ini dahulu sebelum tambah kelas baru");
+    return;
+  }
+
+  let div=document.createElement("div");
+  div.className="kelas-item";
+
+  div.innerHTML=`
+    <b>KULIAH ASAL</b><br>
+
+     <select class="A_JENIS"style="width:10%; padding:4px; font-size:11px;">
+    <option value="">-- Pilih Jenis Kuliah --</option>
+    <option value="Bersemuka">Bersemuka</option>
+    <option value="Dalam Talian (Asynchronous)">Dalam Talian (Asynchronous)</option>
+    <option value="Dalam Talian (Synchronous)">Dalam Talian (Synchronous)</option>
+  </select>
+
+    Kursus <input class="A_KURSUS"style="width:10%; padding:4px; font-size:11px;">
+    Kelas <input class="A_KELAS">
+    Tarikh ASAL<input type="date" class="A_TARIKH"style="width:10%; padding:4px; font-size:11px;">
+    Masa ASAL<input class="A_MASA"style="width:10%; padding:4px; font-size:11px;">
+    Bilik ASAL <input class="A_BILIK"style="width:10%; padding:4px; font-size:11px;"><br><br>
+    
+
+    <b>KULIAH GANTI</b><br>
+  <select class="G_JENIS"style="width:10%; padding:4px; font-size:11px;"">
+    <option value="">-- Pilih Jenis Kuliah --</option>
+    <option value="Bersemuka">Bersemuka</option>
+    <option value="Dalam Talian (Asynchronous)">Dalam Talian (Asynchronous)</option>
+     <option value="Dalam Talian (Synchronous)">Dalam Talian (Synchronous)</option>
+  </select>
+
+    Tarikh GANTI <input type="date" class="G_TARIKH"style="width:10%; padding:4px; font-size:11px;">
+    Masa GANTI<input class="G_MASA"style="width:10%; padding:4px; font-size:11px;">
+    Bilik GANTI<input class="G_BILIK"style="width:10%; padding:4px; font-size:11px;">
+  `;
+
+  box.appendChild(div);
 }
 
-let div=document.createElement("div");
-div.className="kelas-item";
 
-div.innerHTML=`
-<hr>
-
-<b>KULIAH ASAL</b><br>
-Kursus <input class="A_KURSUS">
-Kelas <input class="A_KELAS">
-Tarikh <input type="date" class="A_TARIKH">
-Masa <input class="A_MASA">
-Bilik <input class="A_BILIK"><br><br>
-
-<b>KULIAH GANTI</b><br>
-Tarikh <input type="date" class="G_TARIKH">
-Masa <input class="G_MASA">
-Bilik <input class="G_BILIK">
-`;
-
-kelasBox.appendChild(div);
-
-}
 
 // ================= SUBMIT =================
-function submitForm(){
+async function submitForm(){
 
-let c=document.querySelector(".kelas-item");
+  let cards=document.querySelectorAll("#kelasBox .kelas-item");
 
-let payload={
-  id:user.id,
-  name:user.name,
-  jabatan:user.jabatan,
-  sebab:sebab.value,
-  classes:[{
-    A_KURSUS:c.querySelector(".A_KURSUS").value,
-    A_KELAS:c.querySelector(".A_KELAS").value,
-    A_TARIKH:c.querySelector(".A_TARIKH").value,
-    A_MASA:c.querySelector(".A_MASA").value,
-    A_BILIK:c.querySelector(".A_BILIK").value,
+  if(cards.length === 0){
+    alert("Sila isi kelas dahulu");
+    return;
+  }
 
-    G_TARIKH:c.querySelector(".G_TARIKH").value,
-    G_MASA:c.querySelector(".G_MASA").value,
-    G_BILIK:c.querySelector(".G_BILIK").value
-  }]
-};
+  let c = cards[0];
 
-fetch(API,{
-  method:"POST",
-  body:JSON.stringify({
+  let payload = {
     action:"submit",
-    payload:payload
-  })
-})
-.then(r=>r.json())
-.then(()=>{
+    data: JSON.stringify({
+      id:user.id,
+      name:user.name,
+      jabatan:user.jabatan,
+      sebab:sebab.value,
+      classes:[{
+        A_JENIS:c.querySelector(".A_JENIS").value,
+        A_KURSUS:c.querySelector(".A_KURSUS").value,
+        A_KELAS:c.querySelector(".A_KELAS").value,
+        A_TARIKH:c.querySelector(".A_TARIKH").value,
+        A_MASA:c.querySelector(".A_MASA").value,
+        A_BILIK:c.querySelector(".A_BILIK").value,
+        G_JENIS:c.querySelector(".G_JENIS").value,
+        G_TARIKH:c.querySelector(".G_TARIKH").value,
+        G_MASA:c.querySelector(".G_MASA").value,
+        G_BILIK:c.querySelector(".G_BILIK").value
+      }]
+    })
+  };
 
-  alert("Berjaya dihantar!");
+  await fetch(API,{
+    method:"POST",
+    body: new URLSearchParams(payload)
+  });
 
-  kelasBox.innerHTML="";
+  alert("Permohonan berjaya dihantar!");
+  document.getElementById("kelasBox").innerHTML="";
   loadData();
-
-});
-
 }
 
-// ================= LOAD DATA =================
-function loadData(){
+// ================= LOAD TABLE =================
+async function loadData(){
 
-fetch(API,{
-  method:"POST",
-  body:JSON.stringify({
-    action:"getData",
-    role:user.role,
-    id:user.id,
-    jabatan:user.jabatan
-  })
-})
-.then(r=>r.json())
-.then(res=>{
+  let res = await fetch(
+    `${API}?action=getData&role=${user.role}&userId=${user.id}&jabatan=${user.jabatan}`
+  );
 
-store=res;
+  let data = await res.json();
 
-let html="";
+  let html="";
 
-html+=`
-<tr>
-<th>ID</th>
-<th>SEBAB</th>
-<th>KURSUS</th>
-<th>KELAS</th>
-<th>TARIKH</th>
-<th>MASA</th>
-<th>BILIK</th>
-<th>STATUS</th>
-<th>ACTION</th>
-</tr>`;
+  // ❌ BUANG sort sini kalau backend dah sort
+  // data.sort(...)
 
-res.forEach(r=>{
+  data.forEach(r=>{
 
-let isEdit = editMode[r.noGanti];
+    let isLocked = (r.status === "Diluluskan");
+    let isEdit = editMode[r.noGanti];
+    let canEdit = !isLocked;
 
-html+=`
-<tr class="${r.status==='BARU'?'baru':r.status==='Diluluskan'?'lulus':'reject'}">
+    let rowClass =
+      r.status==="BARU"?"baru":
+      r.status==="Diluluskan"?"lulus":"reject";
 
-<td>${r.noGanti}</td>
+    html += `
+    <tr class="${rowClass}">
 
-<td>
-${isEdit ? `<input id="s-${r.noGanti}" value="${r.sebab}">` : r.sebab}
-</td>
+    ${user.role==="lecturer" ? `
+<td><input type="checkbox" class="pdfCheck" value="${r.noGanti}"></td>` : ""}
 
-<td>
-${isEdit ? `<input id="k-${r.noGanti}" value="${r.A_KURSUS}">` : r.A_KURSUS}
-</td>
+    <td onclick="toggle('${r.noGanti}')" style="cursor:pointer;color:blue">
+      ${r.noGanti}
+    </td>
 
-<td>
-${isEdit ? `<input id="kl-${r.noGanti}" value="${r.A_KELAS}">` : r.A_KELAS}
-</td>
+    <td>${r.sebab}</td>
+    <td>${r.A_KURSUS}</td>
+    <td>${r.status}</td>
 
-<td>
-${isEdit ? `<input type="date" id="t-${r.noGanti}" value="${r.A_TARIKH}">` : r.A_TARIKH}
-</td>
+    <td>
+      <button onclick="editSave('${r.noGanti}')">EDIT</button>
+      <button onclick="del('${r.noGanti}')">DEL</button>
+    </td>
 
-<td>
-${isEdit ? `<input id="m-${r.noGanti}" value="${r.A_MASA}">` : r.A_MASA}
-</td>
+    </tr>
+    `;
+  });
 
-<td>
-${isEdit ? `<input id="b-${r.noGanti}" value="${r.A_BILIK}">` : r.A_BILIK}
-</td>
-
-<td>${r.status}</td>
-
-<td>
-<button onclick="editSave('${r.noGanti}')">
-${isEdit ? "SAVE" : "EDIT"}
-</button>
-
-<button onclick="del('${r.noGanti}')">DEL</button>
-</td>
-
-</tr>
-`;
-});
-
-tbody.innerHTML=html;
-
-});
-
+  tbody.innerHTML = html;
+}
+// ================= TOGGLE =================
+function toggle(id){
+  let el=document.getElementById("d-"+id);
+  el.style.display=el.style.display==="table-row"?"none":"table-row";
 }
 
-// ================= EDIT / SAVE =================
-function editSave(no){
+// ================= EDIT SAVE =================
+async function editSave(no){
 
-if(!editMode[no]){
-  editMode[no]=true;
+  if(!editMode[no]){
+    editMode[no]=true;
+    loadData();
+    return;
+  }
+
+  let updated={
+    sebab:document.getElementById("s-"+no)?.value,
+    status:document.getElementById("st-"+no)?.value
+  };
+
+  await fetch(API,{
+    method:"POST",
+    body:new URLSearchParams({
+      action:"update",
+      no:no,
+      data:JSON.stringify(updated)
+    })
+  });
+
+  delete editMode[no];
   loadData();
-  return;
 }
 
-let updated={
-  sebab:document.getElementById("s-"+no)?.value,
-  A_KURSUS:document.getElementById("k-"+no)?.value,
-  A_KELAS:document.getElementById("kl-"+no)?.value,
-  A_TARIKH:document.getElementById("t-"+no)?.value,
-  A_MASA:document.getElementById("m-"+no)?.value,
-  A_BILIK:document.getElementById("b-"+no)?.value
-};
-
-fetch(API,{
-  method:"POST",
-  body:JSON.stringify({
-    action:"update",
-    no:no,
-    updated:updated
-  })
-})
-.then(()=>{
-
-delete editMode[no];
-loadData();
-
-});
-
-}
-
-// ================= DELETE =================
-function del(no){
-
-if(!confirm("Delete?")) return;
-
-fetch(API,{
-  method:"POST",
-  body:JSON.stringify({
-    action:"delete",
-    no:no
-  })
-})
-.then(()=>loadData());
-
-}
-
-// ================= PDF =================
 function downloadPDF(){
 
-const { jsPDF } = window.jspdf;
-const doc = new jsPDF("l","mm","a4");
+  let checked = Array.from(document.querySelectorAll(".pdfCheck:checked"))
+    .map(cb => cb.value);
 
-doc.text("BORANG PENGGANTIAN KULIAH", 148, 15, {align:"center"});
+  if(checked.length === 0){
+    alert("Sila tick data dulu");
+    return;
+  }
 
-let table = store.map((r,i)=>[
-i+1,
-r.noGanti,
-r.sebab,
-r.A_KURSUS,
-r.A_KELAS,
-r.A_TARIKH,
-r.A_MASA,
-r.A_BILIK,
-r.status
-]);
+  google.script.run.withSuccessHandler(res => {
 
-doc.autoTable({
-startY:25,
-head:[["Bil","ID","Sebab","Kursus","Kelas","Tarikh","Masa","Bilik","Status"]],
-body:table,
-styles:{fontSize:8}
-});
+    let selected = res.filter(r => checked.includes(r.noGanti));
 
-doc.save("ganti_kuliah.pdf");
+    if(selected.length === 0){
+      alert("Data tak jumpa");
+      return;
+    }
 
+    let jabatan = selected[0].jabatan;
+
+   async function downloadPDF(){
+
+  let checked = Array.from(document.querySelectorAll(".pdfCheck:checked"))
+    .map(cb => cb.value);
+
+  if(checked.length === 0){
+    alert("Sila tick data dulu");
+    return;
+  }
+
+  // ✅ AMBIL DATA
+  let res = await fetch(
+    `${API}?action=getData&role=${user.role}&userId=${user.id}&jabatan=${user.jabatan}`
+  );
+
+  let data = await res.json();
+
+  let selected = data.filter(r => checked.includes(r.noGanti));
+
+  if(selected.length === 0){
+    alert("Data tak jumpa");
+    return;
+  }
+
+  let jabatan = selected[0].jabatan;
+
+  // ✅ AMBIL DATA KJ
+  let kjRes = await fetch(`${API}?action=getKJ&jabatan=${jabatan}`);
+  let kj = await kjRes.json();
+
+  // ================= PDF =================
+  const doc = new window.jspdf.jsPDF("l","mm","a4");
+
+  doc.setFontSize(14);
+  doc.text("BORANG PENGGANTIAN KULIAH", 148, 15, {align:"center"});
+
+  doc.setFontSize(10);
+  doc.text("Tarikh Cetakan: " + new Date().toLocaleDateString(), 14, 25);
+
+  let tableData = selected.map((r,i)=>[
+    i+1,
+    r.sebab || "",
+    r.A_JENIS || "",
+    r.A_KURSUS || "",
+    r.A_KELAS || "",
+    formatDate(r.A_TARIKH),
+    r.A_MASA || "",
+    r.A_BILIK || "",
+    r.G_JENIS || "",
+    formatDate(r.G_TARIKH),
+    r.G_MASA || "",
+    r.G_BILIK || "",
+    r.status || ""
+  ]);
+
+  doc.autoTable({
+    startY: 35,
+    head: [[
+      "Bil","Sebab","Jenis","Kursus","Kelas",
+      "Tarikh ASAL","Masa ASAL","Bilik ASAL",
+      "Tarikh GANTI","Masa GANTI","Bilik GANTI","Status"
+    ]],
+    body: tableData,
+    styles: { fontSize: 8 }
+  });
+
+  let y = doc.lastAutoTable.finalY + 15;
+
+  doc.text("Disediakan oleh: " + (selected[0].name || ""), 14, y);
+  doc.text("JABATAN: " + (selected[0].jabatan || ""), 14, y + 6);
+
+  doc.text("Disahkan oleh KETUA JABATAN: " + kj.name, 148, y);
+  doc.text("JABATAN: " + kj.jabatan, 148, y + 6);
+
+  doc.text(
+    "DOKUMEN INI TIDAK MEMERLUKAN TANDATANGAN KOMPUTER",
+    148,
+    200,
+    {align:"center"}
+  );
+
+  doc.save("BORANG_PENGGANTIAN.pdf");
+}
+   
+// ================= DELETE =================
+async function del(no){
+
+  if(!confirm("Delete?")) return;
+
+  await fetch(API,{
+    method:"POST",
+    body:new URLSearchParams({
+      action:"delete",
+      no:no
+    })
+  });
+
+  loadData();
+}
+
+function logout(){
+
+  let confirmExit = confirm("Pastikan semua data telah disimpan.\nAdakah anda pasti ingin log keluar?");
+
+  if(!confirmExit){
+    return; // ❌ user cancel
+  }
+
+  // reset user
+  user = null;
+
+  // clear UI
+  document.getElementById("dashboard").style.display = "none";
+  document.getElementById("loginBox").style.display = "block";
+
+  // clear input login
+  document.getElementById("id").value = "";
+  document.getElementById("pass").value = "";
+
+  // clear table
+  document.getElementById("tbody").innerHTML = "";
+
+  // clear form
+  document.getElementById("kelasBox").innerHTML = "";
+
+  // optional: clear sebab
+  document.getElementById("sebab").value = "";
 }
 
 </script>
