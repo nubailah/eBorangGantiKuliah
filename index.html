@@ -336,6 +336,7 @@ data.forEach(r=>{
 <td>${r.A_KELAS}</td>
     <td>${r.A_TARIKH}</td>
     <td>${r.A_MASA}</td>
+<td>${r.A_BILIK}</td>    
     <td>${r.status}</td>
 
     <td>
@@ -351,11 +352,11 @@ data.forEach(r=>{
   <tr id="d-${r.noGanti}" class="detailRow">
     <td colspan="6">
 
-      <b>DETAIL KULIAH</b><br>
-      Jenis: ${r.A_JENIS}<br>
-      Tarikh: ${r.A_TARIKH}<br>
-      Masa: ${r.A_MASA}<br>
-      Bilik: ${r.A_BILIK}<br>
+      <b>DETAIL KULIAH GANTI</b><br>
+      Jenis: ${r.G_JENIS}<br>
+      Tarikh: ${r.G_TARIKH}<br>
+      Masa: ${r.G_MASA}<br>
+      Bilik: ${r.G_BILIK}<br>
 
     </td>
   </tr>
@@ -436,11 +437,21 @@ async function downloadPDF(){
     r.sebab,
     r.A_KURSUS,
     r.A_KELAS,
-    r.status
+    r.A_BILIK,
+     formatDate(r.A_TARIKH),
+        r.A_MASA,
+        r.A_BILIK,
+        r.G_JENIS,
+        formatDate(r.G_TARIKH),
+        r.G_MASA,
+        r.G_BILIK,
+        r.status
   ]);
 
   doc.autoTable({
-    head:[["Bil","Sebab","Kursus","Kelas","Status"]],
+    head:["Bil","Sebab","Jenis","Kursus","Kelas",
+          "Tarikh ASAL","Masa ASAL","Bilik ASAL",
+          "Tarikh GANTI","Masa GANTI","Bilik GANTI","Status"],
     body:tableData
   });
 
