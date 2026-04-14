@@ -400,16 +400,20 @@ async function downloadPDF(){
 
   const doc = new window.jspdf.jsPDF("l","mm","a4");
 
-  doc.text("BORANG PENGGANTIAN KULIAH", 148, 15, {align:"center"});
+  let tableData = selected.map((r,i)=>[
+    i+1,
+    r.sebab,
+    r.A_KURSUS,
+    r.A_KELAS,
+    r.status
+  ]);
 
-  doc.text(
-    "DOKUMEN INI TIDAK MEMERLUKAN TANDATANGAN KOMPUTER",
-    148,
-    200,
-    {align:"center"}
-  );
+  doc.autoTable({
+    head:[["Bil","Sebab","Kursus","Kelas","Status"]],
+    body:tableData
+  });
 
-  doc.save("BORANG_PENGGANTIAN.pdf");
+  doc.save("test.pdf");
 }
    
 // ================= DELETE =================
