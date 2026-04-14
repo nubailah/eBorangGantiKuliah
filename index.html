@@ -4,7 +4,8 @@
   <base target="_top">
 
   <style>
-
+styles:{ fontSize:8 },
+headStyles:{ fillColor:[44,62,80] },
     .detailRow{
   display:none;
   background:#f9f9f9;
@@ -425,39 +426,36 @@ async function downloadPDF(){
     return;
   }
 
-  let jabatan = selected[0].jabatan;
-
-  let kjRes = await fetch(`${API}?action=getKJ&jabatan=${jabatan}`);
-  let kj = await kjRes.json();
-
   const doc = new window.jspdf.jsPDF("l","mm","a4");
 
   let tableData = selected.map((r,i)=>[
     i+1,
-    r.sebab,
-    r.A_KURSUS,
-    r.A_KELAS,
-    r.A_BILIK,
-     formatDate(r.A_TARIKH),
-        r.A_MASA,
-        r.A_BILIK,
-        r.G_JENIS,
-        formatDate(r.G_TARIKH),
-        r.G_MASA,
-        r.G_BILIK,
-        r.status
+    r.sebab || "",
+    r.A_JENIS || "",
+    r.A_KURSUS || "",
+    r.A_KELAS || "",
+    formatDate(r.A_TARIKH),
+    r.A_MASA || "",
+    r.A_BILIK || "",
+    r.G_JENIS || "",
+    formatDate(r.G_TARIKH),
+    r.G_MASA || "",
+    r.G_BILIK || "",
+    r.status || ""
   ]);
 
   doc.autoTable({
-    head:["Bil","Sebab","Jenis","Kursus","Kelas",
-          "Tarikh ASAL","Masa ASAL","Bilik ASAL",
-          "Tarikh GANTI","Masa GANTI","Bilik GANTI","Status"],
-    body:tableData
+    head:[[
+      "Bil","Sebab","Jenis","Kursus","Kelas",
+      "Tarikh ASAL","Masa ASAL","Bilik ASAL",
+      "Tarikh GANTI","Masa GANTI","Bilik GANTI","Status"
+    ]],
+    body:tableData,
+    styles:{fontSize:8}
   });
 
-  doc.save("test.pdf");
+  doc.save("BORANG_PENGGANTIAN TEST.pdf");
 }
-   
 // ================= DELETE =================
 async function del(no){
 
