@@ -143,8 +143,7 @@ Logout
 <script>
 
 const API = "https://script.google.com/macros/s/AKfycbwt1IPuLICwQlzMW9IbSLG9PmbrmVNcIxadw2u5RiHnsqoPJqXrEkodbFCdPxZMizEheA/exec"; // ⭐ WAJIB
-let user=null;
-let editMode={};
+
 
 let user=null;
 let editMode={};
@@ -162,7 +161,15 @@ function formatDate(d){
 // ================= LOGIN =================
 async function login(){
 
-  let res = await fetch(`${API}?action=login&id=${id.value}&pass=${pass.value}`);
+  let res = await fetch(API,{
+    method:"POST",
+    body:new URLSearchParams({
+      action:"login",
+      id:id.value,
+      pass:pass.value
+    })
+  });
+
   let data = await res.json();
 
   if(!data.ok){
@@ -363,7 +370,7 @@ async function editSave(no){
   loadData();
 }
 
-function downloadPDF(){
+async function downloadPDF(){
 
   let checked = Array.from(document.querySelectorAll(".pdfCheck:checked"))
     .map(cb => cb.value);
@@ -373,28 +380,6 @@ function downloadPDF(){
     return;
   }
 
-  google.script.run.withSuccessHandler(res => {
-
-    let selected = res.filter(r => checked.includes(r.noGanti));
-
-    if(selected.length === 0){
-      alert("Data tak jumpa");
-      return;
-    }
-
-    let jabatan = selected[0].jabatan;
-
-   async function downloadPDF(){
-
-  let checked = Array.from(document.querySelectorAll(".pdfCheck:checked"))
-    .map(cb => cb.value);
-
-  if(checked.length === 0){
-    alert("Sila tick data dulu");
-    return;
-  }
-
-  // ✅ AMBIL DATA
   let res = await fetch(
     `${API}?action=getData&role=${user.role}&userId=${user.id}&jabatan=${user.jabatan}`
   );
@@ -410,53 +395,12 @@ function downloadPDF(){
 
   let jabatan = selected[0].jabatan;
 
-  // ✅ AMBIL DATA KJ
   let kjRes = await fetch(`${API}?action=getKJ&jabatan=${jabatan}`);
   let kj = await kjRes.json();
 
-  // ================= PDF =================
   const doc = new window.jspdf.jsPDF("l","mm","a4");
 
-  doc.setFontSize(14);
   doc.text("BORANG PENGGANTIAN KULIAH", 148, 15, {align:"center"});
-
-  doc.setFontSize(10);
-  doc.text("Tarikh Cetakan: " + new Date().toLocaleDateString(), 14, 25);
-
-  let tableData = selected.map((r,i)=>[
-    i+1,
-    r.sebab || "",
-    r.A_JENIS || "",
-    r.A_KURSUS || "",
-    r.A_KELAS || "",
-    formatDate(r.A_TARIKH),
-    r.A_MASA || "",
-    r.A_BILIK || "",
-    r.G_JENIS || "",
-    formatDate(r.G_TARIKH),
-    r.G_MASA || "",
-    r.G_BILIK || "",
-    r.status || ""
-  ]);
-
-  doc.autoTable({
-    startY: 35,
-    head: [[
-      "Bil","Sebab","Jenis","Kursus","Kelas",
-      "Tarikh ASAL","Masa ASAL","Bilik ASAL",
-      "Tarikh GANTI","Masa GANTI","Bilik GANTI","Status"
-    ]],
-    body: tableData,
-    styles: { fontSize: 8 }
-  });
-
-  let y = doc.lastAutoTable.finalY + 15;
-
-  doc.text("Disediakan oleh: " + (selected[0].name || ""), 14, y);
-  doc.text("JABATAN: " + (selected[0].jabatan || ""), 14, y + 6);
-
-  doc.text("Disahkan oleh KETUA JABATAN: " + kj.name, 148, y);
-  doc.text("JABATAN: " + kj.jabatan, 148, y + 6);
 
   doc.text(
     "DOKUMEN INI TIDAK MEMERLUKAN TANDATANGAN KOMPUTER",
