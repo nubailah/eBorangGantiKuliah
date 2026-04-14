@@ -379,17 +379,32 @@ function toggle(id){
 // ================= EDIT SAVE =================
 async function editSave(no){
 
+  // mode edit
   if(!editMode[no]){
-    editMode[no]=true;
+    editMode[no] = true;
     loadData();
     return;
   }
 
-  let updated={
+  let updated = {
     sebab:document.getElementById("s-"+no)?.value,
+
+    A_JENIS:document.getElementById("aj-"+no)?.value,
+    A_KURSUS:document.getElementById("ak-"+no)?.value,
+    A_KELAS:document.getElementById("al-"+no)?.value,
+    A_TARIKH:document.getElementById("at-"+no)?.value,
+    A_MASA:document.getElementById("am-"+no)?.value,
+    A_BILIK:document.getElementById("ab-"+no)?.value,
+
+    G_JENIS:document.getElementById("gj-"+no)?.value,
+    G_TARIKH:document.getElementById("gt-"+no)?.value,
+    G_MASA:document.getElementById("gm-"+no)?.value,
+    G_BILIK:document.getElementById("gb-"+no)?.value,
+
     status:document.getElementById("st-"+no)?.value
   };
 
+  // ✅ HANTAR KE API
   await fetch(API,{
     method:"POST",
     body:new URLSearchParams({
